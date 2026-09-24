@@ -1,0 +1,8 @@
+Copy your owned N.O.V.A. 2 Android v1.0.3 APK and the complete
+gameloft/games/GloftN2HP data directory into this folder.
+
+The first launch validates and imports the required files automatically.
+The supported APK contains lib/armeabi/libnova2.so with SHA-256:
+476c275bcd942807d8c49068b4dc6c6e666b60190845716d71b1069d80d3caaa
+
+No game files are included with this port.

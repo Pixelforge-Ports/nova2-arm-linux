@@ -1,0 +1,11 @@
+N.O.V.A. 2 — first PortMaster device-test build
+
+This is an experimental adapter for the Android v1.0.3 release. It requires
+the exact APK plus the complete gameloft/games/GloftN2HP data directory; no
+game files are included. First launch validates and imports the data, including
+the original compressed audio archive.
+
+Please report: device model, firmware and GPU mode, whether first launch
+finishes, display resolution, menu/gameplay controls, audio, and a copy of
+ports/nova2/log.txt. Testers can force a display size by adding 640x480,
+720x480, 720x720, 1024x768 or 1280x720 to ports/nova2/resolution.txt.

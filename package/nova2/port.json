@@ -1,0 +1,29 @@
+{
+  "version": 4,
+  "name": "nova2.zip",
+  "items": ["N.O.V.A. 2.sh", "nova2"],
+  "items_opt": [],
+  "attr": {
+    "title": "N.O.V.A. 2: Near Orbit Vanguard Alliance",
+    "porter": ["Pixelforge Ports (Ronax)"],
+    "desc": "N.O.V.A. 2 Android v1.0.3 for ARM Linux handhelds. Supply your own exact APK and complete game-data directory; the first launch validates and imports them.",
+    "desc_md": null,
+    "inst": "Install nova2.zip through PortMaster. Copy your owned N.O.V.A. 2 Android v1.0.3 APK and the complete gameloft/games/GloftN2HP directory to ports/nova2/. First launch imports the data. No game data is included. Display resolution is automatic; put WIDTHxHEIGHT in nova2/resolution.txt to override it.",
+    "inst_md": null,
+    "genres": ["action", "shooter"],
+    "image": null,
+    "rtr": false,
+    "exp": false,
+    "runtime": [],
+    "store": [],
+    "reqs": ["analog_2"],
+    "arch": ["armhf"],
+    "min_glibc": "2.31",
+    "status": {"source": "https://github.com/Pixelforge-Ports", "date_added": "2026-09-20"},
+    "publisher": "Gameloft",
+    "developer": "Gameloft",
+    "released": "2010-12-16",
+    "players": "1",
+    "availability": "paid"
+  }
+}

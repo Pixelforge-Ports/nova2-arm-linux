@@ -1,0 +1,518 @@
+{
+  "schema": 1,
+  "id": "nova2-1.0.3",
+  "version": "1",
+  "title": "N.O.V.A. 2",
+  "abi_order": [
+    "arm"
+  ],
+  "input": {
+    "search_dirs": [
+      "gamedata",
+      "."
+    ]
+  },
+  "extract": [
+    {
+      "id": "library-0",
+      "destination": "donor/lib/armeabi/libnova2.so",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "lib/armeabi/libnova2.so"
+        ]
+      },
+      "validate": {
+        "size": 7879108,
+        "sha256": [
+          "476c275bcd942807d8c49068b4dc6c6e666b60190845716d71b1069d80d3caaa"
+        ],
+        "elf_machine": "arm"
+      }
+    },
+    {
+      "id": "original-apk",
+      "destination": "donor/original.apk",
+      "source": {
+        "kind": "blob",
+        "patterns": [
+          "*.apk"
+        ]
+      },
+      "validate": {
+        "size": 5734429,
+        "sha256": [
+          "a13ffe5106b30afff9f0fa1555f7bce2ff61f998f7572b81ad04431147deb944"
+        ]
+      }
+    },
+    {
+      "id": "apk-assets",
+      "destination": "donor/apk-assets",
+      "source": {
+        "kind": "entries",
+        "patterns": [
+          "assets/*"
+        ],
+        "strip_prefix": "assets"
+      },
+      "validate": {
+        "min_files": 1,
+        "max_files": 1,
+        "min_bytes": 0,
+        "max_bytes": 0
+      }
+    },
+    {
+      "id": "data-0",
+      "destination": "donor/gameloft/games/GloftN2HP/actors.gla",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "games/GloftN2HP/actors.gla",
+          "gameloft/games/GloftN2HP/actors.gla"
+        ]
+      },
+      "validate": {
+        "size": 38866066,
+        "sha256": [
+          "dde8301febaf668b29fc973087a7da85c3b978277ba286dc041df11eb9faf847"
+        ]
+      }
+    },
+    {
+      "id": "data-1",
+      "destination": "donor/gameloft/games/GloftN2HP/effects.gla",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "games/GloftN2HP/effects.gla",
+          "gameloft/games/GloftN2HP/effects.gla"
+        ]
+      },
+      "validate": {
+        "size": 3146743,
+        "sha256": [
+          "e8aceb6e5171a7e247a7147d35fc7a81e194fe77c98544bc7b6aa78c547862e2"
+        ]
+      }
+    },
+    {
+      "id": "data-2",
+      "destination": "donor/gameloft/games/GloftN2HP/GLVideo.mp4",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "games/GloftN2HP/GLVideo.mp4",
+          "gameloft/games/GloftN2HP/GLVideo.mp4"
+        ]
+      },
+      "validate": {
+        "size": 38047567,
+        "sha256": [
+          "0036d0ae17d9f899b7ee386e1858d81de8e8377cf3401db5e63af2e6dd92f8ef"
+        ]
+      }
+    },
+    {
+      "id": "data-3",
+      "destination": "donor/gameloft/games/GloftN2HP/levels.gla",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "games/GloftN2HP/levels.gla",
+          "gameloft/games/GloftN2HP/levels.gla"
+        ]
+      },
+      "validate": {
+        "size": 11762748,
+        "sha256": [
+          "c5d108de3b9d15bab5d44f1bcbece7a461f53a9f1ec1f3dd1e307833829c00d0"
+        ]
+      }
+    },
+    {
+      "id": "data-4",
+      "destination": "donor/gameloft/games/GloftN2HP/location_001_DesertPlanet.gla",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "games/GloftN2HP/location_001_DesertPlanet.gla",
+          "gameloft/games/GloftN2HP/location_001_DesertPlanet.gla"
+        ]
+      },
+      "validate": {
+        "size": 89499273,
+        "sha256": [
+          "cd3c47f424495cc443ed065bab7427020717b82ac5251598c7d6e9d646b6f600"
+        ]
+      }
+    },
+    {
+      "id": "data-5",
+      "destination": "donor/gameloft/games/GloftN2HP/location_002_Jungle.gla",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "games/GloftN2HP/location_002_Jungle.gla",
+          "gameloft/games/GloftN2HP/location_002_Jungle.gla"
+        ]
+      },
+      "validate": {
+        "size": 221691953,
+        "sha256": [
+          "4c55a0a0906132ba5a2f82cae8e99dba4a9ad40153c13156156efe5a2aeb8588"
+        ]
+      }
+    },
+    {
+      "id": "data-6",
+      "destination": "donor/gameloft/games/GloftN2HP/location_003_winter.gla",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "games/GloftN2HP/location_003_winter.gla",
+          "gameloft/games/GloftN2HP/location_003_winter.gla"
+        ]
+      },
+      "validate": {
+        "size": 45114010,
+        "sha256": [
+          "4818da713349aaa56550ca21af85715a04b77d58b0044573ebdc9f97df01ef25"
+        ]
+      }
+    },
+    {
+      "id": "data-7",
+      "destination": "donor/gameloft/games/GloftN2HP/location_004_ship.gla",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "games/GloftN2HP/location_004_ship.gla",
+          "gameloft/games/GloftN2HP/location_004_ship.gla"
+        ]
+      },
+      "validate": {
+        "size": 43069204,
+        "sha256": [
+          "7fac2c40a4ee296e4b47e2aaac0c0d01164fbdb03bdd8ed2eb9ab2aac7d05609"
+        ]
+      }
+    },
+    {
+      "id": "data-8",
+      "destination": "donor/gameloft/games/GloftN2HP/location_005_SpaceCity.gla",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "games/GloftN2HP/location_005_SpaceCity.gla",
+          "gameloft/games/GloftN2HP/location_005_SpaceCity.gla"
+        ]
+      },
+      "validate": {
+        "size": 87093279,
+        "sha256": [
+          "aa009909552c32dee62638f5766c8319ed8c85ff806b161b24fee3fcb73a2e26"
+        ]
+      }
+    },
+    {
+      "id": "data-9",
+      "destination": "donor/gameloft/games/GloftN2HP/location_sandbox.gla",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "games/GloftN2HP/location_sandbox.gla",
+          "gameloft/games/GloftN2HP/location_sandbox.gla"
+        ]
+      },
+      "validate": {
+        "size": 19931542,
+        "sha256": [
+          "d78383bba52c94cdf0bcfd7d4d837411066e61020d999e93d5126e8edca15b8a"
+        ]
+      }
+    },
+    {
+      "id": "data-10",
+      "destination": "donor/gameloft/games/GloftN2HP/menus.gla",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "games/GloftN2HP/menus.gla",
+          "gameloft/games/GloftN2HP/menus.gla"
+        ]
+      },
+      "validate": {
+        "size": 11442674,
+        "sha256": [
+          "8f273cce263585e5aa2bce91dde8db9d737c978a6348247e02b75fd6c2c4604e"
+        ]
+      }
+    },
+    {
+      "id": "data-11",
+      "destination": "donor/gameloft/games/GloftN2HP/oconf.bar",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "games/GloftN2HP/oconf.bar",
+          "gameloft/games/GloftN2HP/oconf.bar"
+        ]
+      },
+      "validate": {
+        "size": 320,
+        "sha256": [
+          "946f54bad72d5c3cf7475f184ca00a2c0d923688f8bab13af683262fc24fb171"
+        ]
+      }
+    },
+    {
+      "id": "data-12",
+      "destination": "donor/gameloft/games/GloftN2HP/particlesystems.gla",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "games/GloftN2HP/particlesystems.gla",
+          "gameloft/games/GloftN2HP/particlesystems.gla"
+        ]
+      },
+      "validate": {
+        "size": 701281,
+        "sha256": [
+          "6bc258f57d6d182dd15c94c4b8b7818c8301addc6925adb22e06d1cfb093583b"
+        ]
+      }
+    },
+    {
+      "id": "data-13",
+      "destination": "donor/gameloft/games/GloftN2HP/sounds_hi.glza",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "games/GloftN2HP/sounds_hi.glza",
+          "gameloft/games/GloftN2HP/sounds_hi.glza"
+        ]
+      },
+      "validate": {
+        "size": 148069429,
+        "sha256": [
+          "dd20f11a1e0c94b5f554990eadf3d8115cfa33282e76354f5a22b2b2c15b4590"
+        ]
+      }
+    },
+    {
+      "id": "data-14",
+      "destination": "donor/gameloft/games/GloftN2HP/sprites.gla",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "games/GloftN2HP/sprites.gla",
+          "gameloft/games/GloftN2HP/sprites.gla"
+        ]
+      },
+      "validate": {
+        "size": 25371441,
+        "sha256": [
+          "9e552eb5e29232fcd0e0ee198081e935aad403e19fa5fb073c5ae7dca983bd62"
+        ]
+      }
+    },
+    {
+      "id": "data-15",
+      "destination": "donor/gameloft/games/GloftN2HP/strings.gla",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "games/GloftN2HP/strings.gla",
+          "gameloft/games/GloftN2HP/strings.gla"
+        ]
+      },
+      "validate": {
+        "size": 629049,
+        "sha256": [
+          "9b97360c020a9b92217f31a1ad837c4f9b2cd1830a4a0bb1f191a7b57487a513"
+        ]
+      }
+    },
+    {
+      "id": "data-16",
+      "destination": "donor/gameloft/games/GloftN2HP/weapons.gla",
+      "source": {
+        "kind": "entry",
+        "patterns": [
+          "games/GloftN2HP/weapons.gla",
+          "gameloft/games/GloftN2HP/weapons.gla"
+        ]
+      },
+      "validate": {
+        "size": 16548927,
+        "sha256": [
+          "0531bad98eeea7bf7f1e1ad3416d077f09f4b2f661e5936dd7b8fc2316a6f1b9"
+        ]
+      }
+    }
+  ],
+  "validate": [
+    {
+      "path": "donor/lib/armeabi/libnova2.so",
+      "size": 7879108,
+      "sha256": [
+        "476c275bcd942807d8c49068b4dc6c6e666b60190845716d71b1069d80d3caaa"
+      ],
+      "elf_machine": "arm"
+    },
+    {
+      "path": "donor/original.apk",
+      "size": 5734429,
+      "sha256": [
+        "a13ffe5106b30afff9f0fa1555f7bce2ff61f998f7572b81ad04431147deb944"
+      ]
+    },
+    {
+      "path": "donor/gameloft/games/GloftN2HP/actors.gla",
+      "size": 38866066,
+      "sha256": [
+        "dde8301febaf668b29fc973087a7da85c3b978277ba286dc041df11eb9faf847"
+      ]
+    },
+    {
+      "path": "donor/gameloft/games/GloftN2HP/effects.gla",
+      "size": 3146743,
+      "sha256": [
+        "e8aceb6e5171a7e247a7147d35fc7a81e194fe77c98544bc7b6aa78c547862e2"
+      ]
+    },
+    {
+      "path": "donor/gameloft/games/GloftN2HP/GLVideo.mp4",
+      "size": 38047567,
+      "sha256": [
+        "0036d0ae17d9f899b7ee386e1858d81de8e8377cf3401db5e63af2e6dd92f8ef"
+      ]
+    },
+    {
+      "path": "donor/gameloft/games/GloftN2HP/levels.gla",
+      "size": 11762748,
+      "sha256": [
+        "c5d108de3b9d15bab5d44f1bcbece7a461f53a9f1ec1f3dd1e307833829c00d0"
+      ]
+    },
+    {
+      "path": "donor/gameloft/games/GloftN2HP/location_001_DesertPlanet.gla",
+      "size": 89499273,
+      "sha256": [
+        "cd3c47f424495cc443ed065bab7427020717b82ac5251598c7d6e9d646b6f600"
+      ]
+    },
+    {
+      "path": "donor/gameloft/games/GloftN2HP/location_002_Jungle.gla",
+      "size": 221691953,
+      "sha256": [
+        "4c55a0a0906132ba5a2f82cae8e99dba4a9ad40153c13156156efe5a2aeb8588"
+      ]
+    },
+    {
+      "path": "donor/gameloft/games/GloftN2HP/location_003_winter.gla",
+      "size": 45114010,
+      "sha256": [
+        "4818da713349aaa56550ca21af85715a04b77d58b0044573ebdc9f97df01ef25"
+      ]
+    },
+    {
+      "path": "donor/gameloft/games/GloftN2HP/location_004_ship.gla",
+      "size": 43069204,
+      "sha256": [
+        "7fac2c40a4ee296e4b47e2aaac0c0d01164fbdb03bdd8ed2eb9ab2aac7d05609"
+      ]
+    },
+    {
+      "path": "donor/gameloft/games/GloftN2HP/location_005_SpaceCity.gla",
+      "size": 87093279,
+      "sha256": [
+        "aa009909552c32dee62638f5766c8319ed8c85ff806b161b24fee3fcb73a2e26"
+      ]
+    },
+    {
+      "path": "donor/gameloft/games/GloftN2HP/location_sandbox.gla",
+      "size": 19931542,
+      "sha256": [
+        "d78383bba52c94cdf0bcfd7d4d837411066e61020d999e93d5126e8edca15b8a"
+      ]
+    },
+    {
+      "path": "donor/gameloft/games/GloftN2HP/menus.gla",
+      "size": 11442674,
+      "sha256": [
+        "8f273cce263585e5aa2bce91dde8db9d737c978a6348247e02b75fd6c2c4604e"
+      ]
+    },
+    {
+      "path": "donor/gameloft/games/GloftN2HP/oconf.bar",
+      "size": 320,
+      "sha256": [
+        "946f54bad72d5c3cf7475f184ca00a2c0d923688f8bab13af683262fc24fb171"
+      ]
+    },
+    {
+      "path": "donor/gameloft/games/GloftN2HP/particlesystems.gla",
+      "size": 701281,
+      "sha256": [
+        "6bc258f57d6d182dd15c94c4b8b7818c8301addc6925adb22e06d1cfb093583b"
+      ]
+    },
+    {
+      "path": "donor/gameloft/games/GloftN2HP/sounds_hi.glza",
+      "size": 148069429,
+      "sha256": [
+        "dd20f11a1e0c94b5f554990eadf3d8115cfa33282e76354f5a22b2b2c15b4590"
+      ]
+    },
+    {
+      "path": "donor/gameloft/games/GloftN2HP/sprites.gla",
+      "size": 25371441,
+      "sha256": [
+        "9e552eb5e29232fcd0e0ee198081e935aad403e19fa5fb073c5ae7dca983bd62"
+      ]
+    },
+    {
+      "path": "donor/gameloft/games/GloftN2HP/strings.gla",
+      "size": 629049,
+      "sha256": [
+        "9b97360c020a9b92217f31a1ad837c4f9b2cd1830a4a0bb1f191a7b57487a513"
+      ]
+    },
+    {
+      "path": "donor/gameloft/games/GloftN2HP/weapons.gla",
+      "size": 16548927,
+      "sha256": [
+        "0531bad98eeea7bf7f1e1ad3416d077f09f4b2f661e5936dd7b8fc2316a6f1b9"
+      ]
+    }
+  ],
+  "commit": [
+    "donor"
+  ],
+  "marker": ".eapx-nova2-data.json",
+  "log": "eapx.log",
+  "space": {
+    "safety_bytes": 282181157
+  },
+  "requires_eapx": ">=0.4.4",
+  "hooks": [
+    {
+      "id": "unpack-audio",
+      "argv": [
+        "python3",
+        "{recipe_dir}/extract_sounds.py",
+        "{stage}/donor"
+      ],
+      "timeout_seconds": 1800,
+      "checkpoint": [
+        {
+          "path": "donor/gameloft/games/GloftN2HP/sounds/.complete",
+          "size": 4
+        }
+      ]
+    }
+  ]
+}
