@@ -4,6 +4,8 @@ Experimental native ARM adapter for the Android v1.0.3 build. It boots on an RG3
 
 ## Latest source update
 
+- Corrected reversed gameplay D-pad Up/Down and right-stick vertical aim. Y now activates the selected special power through the native power manager, with the original availability/cooldown checks and one activation per press. ARM compilation passed; device verification remains required. Menu pointer directions are unchanged.
+
 - Added a checked hook for the verified N.O.V.A. 2 ARM library's pixel converter. It decodes the ATC RGB (format 21) and explicit-alpha (format 22) textures present in the supplied game data into RGBA pixels, then uses the game's regular texture upload path.
 - Added overflow and allocation-length handling, plus direct row copies when the destination is already RGBA.
 - Kept D-pad/right-stick cursor movement, A click/drag and B Back in menus. Corrected gameplay input to use Xperia hardware scancodes, as passed by the original APK. Both right shoulders fire and both left shoulders aim, with shared-button release handling. Virtual pads now use fixed hardware coordinates and integrate right-stick movement into continuous relative aiming. Gameplay selects native control scheme 8, required by the touchpad handlers. Revised controls need device testing.

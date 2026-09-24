@@ -14,7 +14,7 @@ namespace {
 // GLGame.onKeyDown passes KeyEvent.getScanCode(), not getKeyCode().
 enum XperiaScanCode {
     KEY_BACK = 158,
-    KEY_DPAD_UP = 103, KEY_DPAD_DOWN = 108,
+    KEY_DPAD_UP = 108, KEY_DPAD_DOWN = 103, // native movement Y is reversed
     KEY_DPAD_LEFT = 105, KEY_DPAD_RIGHT = 106,
     KEY_MENU = 139,
     KEY_BUTTON_A = 305, KEY_BUTTON_B = 304, // circle / cross
@@ -44,6 +44,34 @@ static bool dpad_up = false, dpad_down = false;
 static bool dpad_left = false, dpad_right = false;
 static bool shoulders[2] = {}, triggers[2] = {};
 static int *control_scheme = nullptr;
+// These calls have only pointer/integer arguments, shared by both ARM ABIs.
+using GetLevelFn = void *(*)();
+using GetPlayerFn = void *(*)(void *);
+using CanUsePowerFn = bool (*)(void *, bool);
+using UsePowerFn = void (*)(void *);
+static GetLevelFn get_level;
+static GetPlayerFn get_player;
+static CanUsePowerFn can_use_power;
+static UsePowerFn use_special_power;
+static bool power_held = false;
+
+static void power_button(bool down) {
+    if (down == power_held) return;
+    power_held = down;
+    if (!down || cursor_mode || !get_level || !get_player ||
+        !can_use_power || !use_special_power) return;
+    void *level = get_level();
+    void *player = level ? get_player(level) : nullptr;
+    if (!player) return;
+    // Verified v1.0.3 PlayerComponent layout (donor SHA checked at startup).
+    // Follow the HUD's CanUsePower(true) -> UseSpecialPower path, preserving
+    // unlock/cooldown checks rather than sending the unrelated square key.
+    void *manager = *reinterpret_cast<void **>(static_cast<char *>(player) + 0x150);
+    if (!manager) return;
+    const int selected = *reinterpret_cast<int *>(static_cast<char *>(manager) + 0x54);
+    if (selected < 0) return;
+    if (can_use_power(manager, true)) use_special_power(manager);
+}
 
 struct VirtualPad {
     int id;
@@ -130,7 +158,7 @@ static void update_aim(float x, float y, float dt) {
     // The right pad consumes relative deltas. Rebase at its edge without
     // sending a reverse movement, then continue dragging while the stick holds.
     const float dx = x * 300.f * std::clamp(dt, 0.f, .05f);
-    const float dy = y * 300.f * std::clamp(dt, 0.f, .05f);
+    const float dy = -y * 300.f * std::clamp(dt, 0.f, .05f);
     if (!aim_pad.held || aim_x + dx < 616 || aim_x + dx > 956 ||
         aim_y + dy < 10 || aim_y + dy > 350) {
         update_virtual_pad(aim_pad, 0, 0);
@@ -192,8 +220,7 @@ static void handle_button(int raw_button, bool down) {
             key(KEY_BUTTON_X, down);
             return;
         case SDL_CONTROLLER_BUTTON_Y:
-            if (down) enter_gameplay();
-            key(KEY_BUTTON_Y, down);
+            power_button(down);
             return;
         case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
             shoulder(0, false, down);
@@ -226,6 +253,12 @@ static void update_trigger(int axis, float value) {
 
 void input_init() {
     control_scheme = reinterpret_cast<int *>(so_symbol(nova_module, "nCurrentControlScheme"));
+    get_level = reinterpret_cast<GetLevelFn>(so_symbol(nova_module, "_ZN6CLevel8GetLevelEv"));
+    get_player = reinterpret_cast<GetPlayerFn>(so_symbol(nova_module, "_ZN6CLevel18GetPlayerComponentEv"));
+    can_use_power = reinterpret_cast<CanUsePowerFn>(so_symbol(nova_module, "_ZN13CPowerManager11CanUsePowerEb"));
+    use_special_power = reinterpret_cast<UsePowerFn>(so_symbol(nova_module, "_ZN13CPowerManager15UseSpecialPowerEv"));
+    if (!get_level || !get_player || !can_use_power || !use_special_power)
+        SDL_Log("NOVA2: power activation symbols unavailable");
     key_down = native<donor::GLGame_nativeSetOnKeyDown_10>("GLGame_nativeSetOnKeyDown");
     key_up = native<donor::GLGame_nativeSetOnKeyUp_11>("GLGame_nativeSetOnKeyUp");
     touch_down = native<donor::GLGame_nativeTouchPressed_17>("GLGame_nativeTouchPressed");
@@ -268,6 +301,7 @@ void android_input_cursor_press(bool down) {
 
 bool android_input_inject_control(const char *name, bool down) {
     if (!name) return false;
+    if (!strcmp(name, "y")) { power_button(down); return true; }
     if (!strcmp(name, "l1") || !strcmp(name, "l2") ||
         !strcmp(name, "r1") || !strcmp(name, "r2")) {
         shoulder(name[0] == 'r', name[1] == '2', down);
@@ -342,6 +376,7 @@ void input_event(const SDL_Event &event) {
         shoulders[0] = shoulders[1] = triggers[0] = triggers[1] = false;
         dpad_up = dpad_down = dpad_left = dpad_right = false;
         lx = ly = rx = ry = 0;
+        power_held = false;
         if (disconnected) {
             SDL_GameControllerClose(pad);
             pad = nullptr;
@@ -382,7 +417,7 @@ void input_event(const SDL_Event &event) {
                 break;
             case SDLK_LCTRL: key(cursor_mode ? KEY_BACK : KEY_BUTTON_B, down); break;
             case SDLK_r: key(KEY_BUTTON_X, down); break;
-            case SDLK_e: key(KEY_BUTTON_Y, down); break;
+            case SDLK_e: power_button(down); break;
             case SDLK_ESCAPE: key(KEY_MENU, down); break;
             case SDLK_RETURN: enter_menu(); key(KEY_MENU, down); break;
             case SDLK_F12: if (down) android_app_request_exit("exit key"); break;

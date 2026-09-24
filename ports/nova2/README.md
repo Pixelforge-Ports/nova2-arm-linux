@@ -37,13 +37,14 @@ controls. Start opens the pause menu and restores cursor controls.
 | Control | Gameplay action |
 | --- | --- |
 | Left stick | Move |
-| Right stick | Continuous camera / aim |
+| D-pad (gameplay) | Move; Up = forward, Down = backward |
+| Right stick | Continuous camera / aim; Up = look up, Down = look down |
 | R1 or R2 | Fire |
 | L1 or L2 | Aim down sights |
 | A | Throw grenade / selected item |
 | B | Jump / interact (context dependent) |
 | X | Reload |
-| Y | Use power (where supported by the game) |
+| Y | Use selected special power (must be unlocked and off cooldown) |
 
 The adapter uses the original Xperia Play scancodes and control scheme.
 Face labels default to Nintendo layout; set `NOVA2_FACE_LAYOUT=xbox` to swap
