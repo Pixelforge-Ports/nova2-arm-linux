@@ -11,6 +11,7 @@
 #include "so_util.h"
 #include "atc_decompress.h"
 #include <atomic>
+#include <cerrno>
 #include <climits>
 #include <cstdio>
 #include <cstdlib>
@@ -19,6 +20,7 @@
 #include <new>
 #include <stdexcept>
 #include <unistd.h>
+#include <sys/mman.h>
 #include <vector>
 
 so_module *nova_module=nullptr;
@@ -46,6 +48,187 @@ static std::atomic<unsigned> atc_texture_data_trace_count{0};
 static std::atomic<unsigned> image_load_data_trace_count{0};
 static std::atomic<unsigned> texture_map_trace_count{0};
 static std::atomic<unsigned> pixel_convert_trace_count{0};
+
+static void patch_no_touch_control_scheme(so_module *module) {
+    // Route the game's own scheme selection through Xperia scheme 8. That
+    // scheme keeps the game's touch buttons hidden while accepting touchpad
+    // input from the handheld controls.
+    uintptr_t address=module->text_base+0x0028a714;
+    auto *instructions=reinterpret_cast<uint32_t *>(address);
+    static const uint32_t expected[]={
+        0xe59c0000,0xe5801008,0xe59c0000,0xe5900008
+    };
+    if(std::memcmp(instructions,expected,sizeof(expected))!=0) {
+        fprintf(stderr,"N.O.V.A. 2: controller control scheme patch skipped (unexpected code)\n");
+        return;
+    }
+
+    uintptr_t stub_address=so_alloc_arena(module,0x01ffffff,address,16);
+    if(!stub_address) {
+        fprintf(stderr,"N.O.V.A. 2: controller control scheme patch has no nearby code space\n");
+        return;
+    }
+    int64_t offset=static_cast<int64_t>(stub_address)-static_cast<int64_t>(address+8);
+    if((offset&3)!=0 || offset < -0x02000000LL || offset > 0x01fffffcLL) {
+        fprintf(stderr,"N.O.V.A. 2: controller control scheme patch is out of branch range\n");
+        return;
+    }
+
+    auto *stub=reinterpret_cast<uint32_t *>(stub_address);
+    stub[0]=expected[0]; // ldr r0,[ip]
+    stub[1]=0xe3a01008;   // mov r1,#8
+    stub[2]=0xe51ff004;   // ldr pc,[pc,#-4]
+    stub[3]=static_cast<uint32_t>(address+4);
+    __builtin___clear_cache(reinterpret_cast<char *>(stub_address),
+                            reinterpret_cast<char *>(stub_address+16));
+
+    long page_size=sysconf(_SC_PAGESIZE);
+    if(page_size<=0) return;
+    uintptr_t page=address & ~static_cast<uintptr_t>(page_size-1);
+    if(mprotect(reinterpret_cast<void *>(page),static_cast<size_t>(page_size),
+                PROT_READ|PROT_WRITE|PROT_EXEC)!=0) {
+        fprintf(stderr,"N.O.V.A. 2: controller control scheme patch failed: %s\n",strerror(errno));
+        return;
+    }
+    instructions[0]=0xea000000|
+        (static_cast<uint32_t>(offset>>2)&0x00ffffff);
+    __builtin___clear_cache(reinterpret_cast<char *>(address),
+                            reinterpret_cast<char *>(address+4));
+    if(mprotect(reinterpret_cast<void *>(page),static_cast<size_t>(page_size),
+                PROT_READ|PROT_EXEC)!=0)
+        fprintf(stderr,"N.O.V.A. 2: warning: could not restore code page permissions: %s\n",strerror(errno));
+    fprintf(stderr,"N.O.V.A. 2: Xperia controller scheme enforced; touch fire control hidden\n");
+}
+
+static void patch_jump_tutorial_null_control(so_module *module) {
+    // Verified v1.0.3 ARM code: the selected touch control returns no jump
+    // widget on a physical gamepad, but StartJumpGlow dereferences it. Mark
+    // the tutorial as scheme 8 (the game's existing skip-touch-controls case)
+    // and return through its epilogue so Update stops this tutorial safely.
+    uintptr_t address=module->text_base+0x002ae2cc;
+    auto *instructions=reinterpret_cast<uint32_t *>(address);
+    if(instructions[0]!=0xe3530008 || instructions[1]!=0x0a000028) {
+        fprintf(stderr,"N.O.V.A. 2: jump tutorial guard skipped (unexpected code)\n");
+        return;
+    }
+    uintptr_t stub_address=so_alloc_arena(module,0x01ffffff,address,24);
+    if(!stub_address) {
+        fprintf(stderr,"N.O.V.A. 2: jump tutorial guard has no nearby code space\n");
+        return;
+    }
+    int64_t branch_offset=static_cast<int64_t>(stub_address)-
+                          static_cast<int64_t>(address+8);
+    if((branch_offset&3)!=0 || branch_offset < -0x02000000LL ||
+       branch_offset > 0x01fffffcLL) {
+        fprintf(stderr,"N.O.V.A. 2: jump tutorial guard is out of branch range\n");
+        return;
+    }
+    auto *stub=reinterpret_cast<uint32_t *>(stub_address);
+    stub[0]=0xe3a03008; // mov r3,#8
+    stub[1]=0xe5843038; // str r3,[r4,#56] (tutorial control-scheme field)
+    stub[2]=0xe51ff004; // ldr pc,[pc,#-4]
+    stub[3]=static_cast<uint32_t>(module->text_base+0x002ae378);
+    __builtin___clear_cache(reinterpret_cast<char *>(stub_address),
+                            reinterpret_cast<char *>(stub_address+16));
+    long page_size=sysconf(_SC_PAGESIZE);
+    if(page_size<=0) return;
+    uintptr_t page=address & ~static_cast<uintptr_t>(page_size-1);
+    if(mprotect(reinterpret_cast<void *>(page),static_cast<size_t>(page_size),
+                PROT_READ|PROT_WRITE|PROT_EXEC)!=0) {
+        fprintf(stderr,"N.O.V.A. 2: jump tutorial guard failed: %s\n",strerror(errno));
+        return;
+    }
+    // cmp r0,#0; beq to the guarded tutorial state update above.
+    instructions[0]=0xe3500000;
+    instructions[1]=0x0a000000 |
+        (static_cast<uint32_t>(branch_offset>>2)&0x00ffffff);
+    __builtin___clear_cache(reinterpret_cast<char *>(address),
+                            reinterpret_cast<char *>(address+8));
+    if(mprotect(reinterpret_cast<void *>(page),static_cast<size_t>(page_size),
+                PROT_READ|PROT_EXEC)!=0)
+        fprintf(stderr,"N.O.V.A. 2: warning: could not restore code page permissions: %s\n",strerror(errno));
+    fprintf(stderr,"N.O.V.A. 2: controller-safe jump tutorial enabled\n");
+}
+
+static void patch_tutorial_prompt_null_guard(so_module *module,
+        uintptr_t site_offset,const uint32_t expected[2],
+        uintptr_t skip_offset,const char *stage) {
+    // The two replaced instructions are replayed in the trampoline when a view
+    // exists. A missing view selects scheme 8 and skips only the touch prompt.
+    uintptr_t address=module->text_base+site_offset;
+    auto *instructions=reinterpret_cast<uint32_t *>(address);
+    if(std::memcmp(instructions,expected,sizeof(uint32_t)*2)!=0) {
+        fprintf(stderr,"N.O.V.A. 2: %s tutorial guard skipped (unexpected code)\n",stage);
+        return;
+    }
+
+    uintptr_t stub_address=so_alloc_arena(module,0x01ffffff,address,40);
+    if(!stub_address) {
+        fprintf(stderr,"N.O.V.A. 2: %s tutorial guard has no nearby code space\n",stage);
+        return;
+    }
+    auto branch_fits=[](uintptr_t from,uintptr_t to) {
+        int64_t offset=static_cast<int64_t>(to)-static_cast<int64_t>(from+8);
+        return (offset&3)==0 && offset>=-0x02000000LL && offset<=0x01fffffcLL;
+    };
+    const uintptr_t skip_prompt=module->text_base+skip_offset;
+    const uintptr_t resume=address+8;
+    if(!branch_fits(address,stub_address) ||
+       !branch_fits(stub_address+4,stub_address+24)) {
+        fprintf(stderr,"N.O.V.A. 2: %s tutorial guard is out of branch range\n",stage);
+        return;
+    }
+
+    auto branch_word=[&](uintptr_t from,uintptr_t to,uint32_t opcode) {
+        int64_t offset=static_cast<int64_t>(to)-static_cast<int64_t>(from+8);
+        return opcode|(static_cast<uint32_t>(offset>>2)&0x00ffffff);
+    };
+    auto *stub=reinterpret_cast<uint32_t *>(stub_address);
+    stub[0]=0xe3500000; // cmp r0,#0
+    stub[1]=branch_word(stub_address+4,stub_address+24,0x1a000000); // bne replay
+    stub[2]=0xe3a03008; // mov r3,#8
+    stub[3]=0xe5843038; // str r3,[r4,#56] (no-touch control scheme)
+    stub[4]=0xe51ff004; // ldr pc,[pc,#-4]
+    stub[5]=static_cast<uint32_t>(skip_prompt);
+    stub[6]=expected[0];
+    stub[7]=expected[1];
+    stub[8]=0xe51ff004; // ldr pc,[pc,#-4]
+    stub[9]=static_cast<uint32_t>(resume);
+    __builtin___clear_cache(reinterpret_cast<char *>(stub_address),
+                            reinterpret_cast<char *>(stub_address+40));
+
+    long page_size=sysconf(_SC_PAGESIZE);
+    if(page_size<=0) return;
+    uintptr_t page=address & ~static_cast<uintptr_t>(page_size-1);
+    if(mprotect(reinterpret_cast<void *>(page),static_cast<size_t>(page_size),
+                PROT_READ|PROT_WRITE|PROT_EXEC)!=0) {
+        fprintf(stderr,"N.O.V.A. 2: %s tutorial guard failed: %s\n",stage,strerror(errno));
+        return;
+    }
+    instructions[0]=branch_word(address,stub_address,0xea000000); // b stub
+    __builtin___clear_cache(reinterpret_cast<char *>(address),
+                            reinterpret_cast<char *>(address+4));
+    if(mprotect(reinterpret_cast<void *>(page),static_cast<size_t>(page_size),
+                PROT_READ|PROT_EXEC)!=0)
+        fprintf(stderr,"N.O.V.A. 2: warning: could not restore code page permissions: %s\n",strerror(errno));
+    fprintf(stderr,"N.O.V.A. 2: controller-safe %s tutorial prompt enabled\n",stage);
+}
+
+static void patch_tutorial_control_prompts(so_module *module) {
+    static const uint32_t move_expected[]={0xe1d073fa,0xe7953003};
+    static const uint32_t shoot_expected[]={0xe1d073fa,0xe7963003};
+    static const uint32_t rotate_expected[]={0xe1d073fa,0xe7963003};
+    // These sites follow each handler's existing scheme-8 branch, so normal
+    // touch prompts retain their original path and only null views are skipped.
+    // Start after their PC-relative literal loads; replay two plain operations.
+    patch_tutorial_prompt_null_guard(module,0x002ae70c,move_expected,
+                                     0x002ae764,"move");
+    patch_tutorial_prompt_null_guard(module,0x002b0e2c,shoot_expected,
+                                     0x002b0e74,"shoot");
+    patch_tutorial_prompt_null_guard(module,0x002aff74,rotate_expected,
+                                     0x002afec0,"rotate");
+}
+
 so_module *port_guest_module() {return nova_module;}
 extern "C" void viewport_scale_init(int,int);
 
@@ -305,6 +488,9 @@ extern "C" int so_after_relocate(so_module *module) {
         }
     }
     if(missing) return -1;
+    patch_no_touch_control_scheme(module);
+    patch_jump_tutorial_null_control(module);
+    patch_tutorial_control_prompts(module);
     uintptr_t convert_address=module->text_base+0x005c5db8;
     uint32_t convert_first=*reinterpret_cast<uint32_t *>(convert_address);
     if(convert_first==0xe92d4ff0) {

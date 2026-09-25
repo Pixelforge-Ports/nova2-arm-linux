@@ -15,9 +15,9 @@
 #     Wayland and PulseAudio and finds none of them.
 #   * the GL/EGL stack. Those are the Mali blobs, matched to the kernel driver.
 #
-# Everything else is ours to carry. The closure therefore descends only
-# through libraries we bundle: what a device-provided library needs is the
-# device's business, not the port's.
+# Other dependencies are included only when they are absent from the target
+# CFW. The closure therefore descends through libraries we bundle; dependencies
+# of device-provided libraries remain the device's responsibility.
 #
 # Run it inside the build container. The image is shared with the sibling port
 # that first built it - there is no separate one for this port, and building a
@@ -43,6 +43,8 @@ device_reason() {
         ld-linux-armhf.so.3|libc.so.6|libm.so.6|libdl.so.2|libpthread.so.0|\
         librt.so.1|libresolv.so.2|libanl.so.1|libnsl.so.*|libutil.so.1)
             echo "glibc: must be the device's own, the kernel maps its interpreter" ;;
+        libgcc_s.so.1|libstdc++.so.6)
+            echo "CFW toolchain runtime: use the device's copy, do not bundle core runtime libraries" ;;
         libSDL2-2.0.so.0)
             echo "the CFW's SDL2 is built for the device's video backend (KMSDRM, no X11)" ;;
         libEGL.so.*|libGLESv2.so.*|libGLESv1_CM.so.*|libGL.so.*|libgbm.so.*|libdrm.so.*|libmali*)

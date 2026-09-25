@@ -2,7 +2,16 @@
 
 Experimental native ARM adapter for the Android v1.0.3 build. It boots on an RG34XXSP running muOS at 720x480 and reaches a level. The Xperia Play gameplay controller mapping has been added and needs device testing.
 
+## PortMaster packaging update
+
+- First-launch import now opens PortMaster's dialog before eapx starts, allowing the importer to report extraction progress through the PortMaster progress bar.
+- Added the supplied in-game screenshot at 640x480 and a matching cover image. Both assets are included in the package with an artwork notice.
+- Kept all component license files in one flat folder and made the package check reject device-provided system libraries. The library collector leaves SDL2, graphics drivers, glibc, libstdc++, and libgcc to the CFW.
+- Hardware testing is still required for this source revision. The Docker daemon was inaccessible in this session, so no updated PortMaster ZIP was built.
+
 ## Latest source update
+
+- RG DS startup: import succeeded but EGL display creation failed after the launcher forced a raw Mali blob under Wayland. Compositor sessions now retain the firmware backend and select a 32-bit firmware EGL/GLES pair ahead of bundled libraries. Both launcher copies are synchronized. Three graphics-selection tests pass; RG DS device verification remains pending.
 
 - Corrected reversed gameplay D-pad Up/Down and right-stick vertical aim. Y now activates the selected special power through the native power manager, with the original availability/cooldown checks and one activation per press. ARM compilation passed; device verification remains required. Menu pointer directions are unchanged.
 

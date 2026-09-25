@@ -1,0 +1,6 @@
+Copyright (c) 2026 Pixelforge Ports contributors
+
+This port's cover artwork was prepared for N.O.V.A. 2 using a gameplay image
+supplied by the porter. The game screenshot, game imagery, names, and marks
+remain the property of Gameloft and their respective rights holders. This notice
+does not grant rights to the original game content.

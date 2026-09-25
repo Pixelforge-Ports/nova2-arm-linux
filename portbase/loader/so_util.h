@@ -151,6 +151,7 @@ void so_initialize(so_module *mod);
 uintptr_t so_symbol(so_module *mod, const char *symbol);
 int so_symbol_index(so_module *mod, const char *symbol);
 void so_symbol_fix_ldmia(so_module *mod, const char *symbol);
+uintptr_t so_alloc_arena(so_module *mod, uintptr_t range, uintptr_t dst, size_t size);
 
 /*
  * Called by so_load_module() once per module, after it is relocated and its

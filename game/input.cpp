@@ -39,7 +39,8 @@ static std::map<int, bool> held;
 static float cx = 320, cy = 240;
 static float lx = 0, ly = 0, rx = 0, ry = 0;
 static bool touching = false;
-static bool cursor_mode = true;
+static bool cursor_mode = false;
+static bool select_held = false;
 static bool dpad_up = false, dpad_down = false;
 static bool dpad_left = false, dpad_right = false;
 static bool shoulders[2] = {}, triggers[2] = {};
@@ -110,18 +111,12 @@ static int face_layout_button(int button) {
 }
 
 static void enter_gameplay(void) {
-    cursor_mode = false;
     // notifyTouchPad* accepts input only for the Xperia scheme (8).
     if (control_scheme) *control_scheme = 8;
 }
 
-static void enter_menu(void) {
-    cursor_mode = true;
-    if (cx < 0 || cy < 0) {
-        cx = nova_width * .5f;
-        cy = nova_height * .5f;
-    }
-}
+static void set_mouse_mode(bool enabled);
+static void select_button(bool down);
 
 static float axis_value(Sint16 value) {
     float v = value / 32768.f;
@@ -157,7 +152,7 @@ static void update_aim(float x, float y, float dt) {
     }
     // The right pad consumes relative deltas. Rebase at its edge without
     // sending a reverse movement, then continue dragging while the stick holds.
-    const float dx = x * 300.f * std::clamp(dt, 0.f, .05f);
+    const float dx = x * 900.f * std::clamp(dt, 0.f, .05f);
     const float dy = -y * 300.f * std::clamp(dt, 0.f, .05f);
     if (!aim_pad.held || aim_x + dx < 616 || aim_x + dx > 956 ||
         aim_y + dy < 10 || aim_y + dy > 350) {
@@ -171,6 +166,7 @@ static void update_aim(float x, float y, float dt) {
 }
 
 static void shoulder(int side, bool trigger, bool down) {
+    if (cursor_mode) return;
     (trigger ? triggers : shoulders)[side] = down;
     if (down) enter_gameplay();
     key(side ? KEY_BUTTON_R1 : KEY_BUTTON_L1, triggers[side] || shoulders[side]);
@@ -179,6 +175,39 @@ static void shoulder(int side, bool trigger, bool down) {
 static void release_virtual_pads(void) {
     update_virtual_pad(move_pad, 0, 0);
     update_virtual_pad(aim_pad, 0, 0);
+}
+
+static void set_mouse_mode(bool enabled) {
+    if (cursor_mode == enabled) return;
+    cursor_mode = enabled;
+
+    release_virtual_pads();
+    android_input_cursor_press(false);
+    for (auto &entry : held) {
+        if (entry.second) key(entry.first, false);
+    }
+
+    dpad_up = dpad_down = dpad_left = dpad_right = false;
+    shoulders[0] = shoulders[1] = triggers[0] = triggers[1] = false;
+    power_held = false;
+
+    if (cursor_mode) {
+        if (cx < 0 || cy < 0) {
+            cx = nova_width * .5f;
+            cy = nova_height * .5f;
+        }
+    } else {
+        enter_gameplay();
+    }
+}
+
+static void select_button(bool down) {
+    if (down && !select_held) set_mouse_mode(!cursor_mode);
+    select_held = down;
+}
+
+static void enter_menu(void) {
+    set_mouse_mode(true);
 }
 
 static void set_dpad(int button, bool down) {
@@ -190,6 +219,19 @@ static void set_dpad(int button, bool down) {
     }
 }
 
+static int gameplay_dpad_key(int button) {
+    // Device testing found the game's four directions rotated one step:
+    // physical Right=forward, Up=left, Left=back, Down=right.
+    // Rotate gameplay input so the handheld uses the expected layout.
+    switch (button) {
+        case SDL_CONTROLLER_BUTTON_DPAD_UP: return KEY_DPAD_RIGHT;
+        case SDL_CONTROLLER_BUTTON_DPAD_DOWN: return KEY_DPAD_LEFT;
+        case SDL_CONTROLLER_BUTTON_DPAD_LEFT: return KEY_DPAD_DOWN;
+        case SDL_CONTROLLER_BUTTON_DPAD_RIGHT: return KEY_DPAD_UP;
+        default: return 0;
+    }
+}
+
 static void handle_button(int raw_button, bool down) {
     const int button = face_layout_button(raw_button);
     if (button == SDL_CONTROLLER_BUTTON_DPAD_UP ||
@@ -198,10 +240,7 @@ static void handle_button(int raw_button, bool down) {
         button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) {
         if (cursor_mode) set_dpad(button, down);
         else {
-            const int code = button == SDL_CONTROLLER_BUTTON_DPAD_UP ? KEY_DPAD_UP :
-                button == SDL_CONTROLLER_BUTTON_DPAD_DOWN ? KEY_DPAD_DOWN :
-                button == SDL_CONTROLLER_BUTTON_DPAD_LEFT ? KEY_DPAD_LEFT : KEY_DPAD_RIGHT;
-            key(code, down);
+            key(gameplay_dpad_key(button), down);
         }
         return;
     }
@@ -216,6 +255,7 @@ static void handle_button(int raw_button, bool down) {
             else { if (down) enter_gameplay(); key(KEY_BUTTON_B, down); }
             return;
         case SDL_CONTROLLER_BUTTON_X:
+            if (cursor_mode) return;
             if (down) enter_gameplay();
             key(KEY_BUTTON_X, down);
             return;
@@ -237,11 +277,10 @@ static void handle_button(int raw_button, bool down) {
             key(KEY_BUTTON_R3, down);
             return;
         case SDL_CONTROLLER_BUTTON_START:
-            if (down) enter_menu();
             key(KEY_MENU, down);
             return;
         case SDL_CONTROLLER_BUTTON_BACK:
-            key(KEY_BUTTON_SELECT, down); return;
+            select_button(down); return;
         default: return;
     }
 }
@@ -252,7 +291,10 @@ static void update_trigger(int axis, float value) {
 } // namespace
 
 void input_init() {
+    cursor_mode = false;
+    select_held = false;
     control_scheme = reinterpret_cast<int *>(so_symbol(nova_module, "nCurrentControlScheme"));
+    if (control_scheme) *control_scheme = 8;
     get_level = reinterpret_cast<GetLevelFn>(so_symbol(nova_module, "_ZN6CLevel8GetLevelEv"));
     get_player = reinterpret_cast<GetPlayerFn>(so_symbol(nova_module, "_ZN6CLevel18GetPlayerComponentEv"));
     can_use_power = reinterpret_cast<CanUsePowerFn>(so_symbol(nova_module, "_ZN13CPowerManager11CanUsePowerEb"));
@@ -301,6 +343,10 @@ void android_input_cursor_press(bool down) {
 
 bool android_input_inject_control(const char *name, bool down) {
     if (!name) return false;
+    if (!strcmp(name, "select") || !strcmp(name, "back")) {
+        select_button(down);
+        return true;
+    }
     if (!strcmp(name, "y")) { power_button(down); return true; }
     if (!strcmp(name, "l1") || !strcmp(name, "l2") ||
         !strcmp(name, "r1") || !strcmp(name, "r2")) {
@@ -321,8 +367,7 @@ bool android_input_inject_control(const char *name, bool down) {
         {"x", KEY_BUTTON_X}, {"y", KEY_BUTTON_Y},
         {"l1", KEY_BUTTON_L1}, {"r1", KEY_BUTTON_R1},
         {"l2", KEY_BUTTON_L2}, {"r2", KEY_BUTTON_R2},
-        {"start", KEY_MENU}, {"back", KEY_BUTTON_SELECT},
-        {"select", KEY_BUTTON_SELECT},
+        {"start", KEY_MENU},
     };
     for (const auto &binding : bindings) {
         if (!strcmp(name, binding.name)) {
@@ -333,9 +378,10 @@ bool android_input_inject_control(const char *name, bool down) {
     }
     if (!strcmp(name, "up") || !strcmp(name, "down") ||
         !strcmp(name, "left") || !strcmp(name, "right")) {
-        const int code = !strcmp(name, "up") ? KEY_DPAD_UP :
-            !strcmp(name, "down") ? KEY_DPAD_DOWN :
-            !strcmp(name, "left") ? KEY_DPAD_LEFT : KEY_DPAD_RIGHT;
+        const int code = !strcmp(name, "up") ? gameplay_dpad_key(SDL_CONTROLLER_BUTTON_DPAD_UP) :
+            !strcmp(name, "down") ? gameplay_dpad_key(SDL_CONTROLLER_BUTTON_DPAD_DOWN) :
+            !strcmp(name, "left") ? gameplay_dpad_key(SDL_CONTROLLER_BUTTON_DPAD_LEFT) :
+            gameplay_dpad_key(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
         key(code, down);
         return true;
     }
@@ -377,6 +423,7 @@ void input_event(const SDL_Event &event) {
         dpad_up = dpad_down = dpad_left = dpad_right = false;
         lx = ly = rx = ry = 0;
         power_held = false;
+        select_held = false;
         if (disconnected) {
             SDL_GameControllerClose(pad);
             pad = nullptr;
@@ -419,7 +466,7 @@ void input_event(const SDL_Event &event) {
             case SDLK_r: key(KEY_BUTTON_X, down); break;
             case SDLK_e: power_button(down); break;
             case SDLK_ESCAPE: key(KEY_MENU, down); break;
-            case SDLK_RETURN: enter_menu(); key(KEY_MENU, down); break;
+            case SDLK_RETURN: key(KEY_MENU, down); break;
             case SDLK_F12: if (down) android_app_request_exit("exit key"); break;
         }
     }
@@ -459,7 +506,7 @@ void input_tick(float dt) {
         release_virtual_pads();
     } else {
         dpad_up = dpad_down = dpad_left = dpad_right = false;
-        update_virtual_pad(move_pad, lx, ly);
+        update_virtual_pad(move_pad, lx, -ly);
         update_aim(rx, ry, dt);
     }
 }

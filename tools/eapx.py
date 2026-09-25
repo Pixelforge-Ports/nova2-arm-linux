@@ -468,14 +468,7 @@ def clamp_text(value):
 
 
 class PortMaster:
-    """Talks to the progress bar the PortMaster runtime already ships.
-
-    pugwash listens on a FIFO and accepts a `progress` command taking an
-    amount, a total and a format. It is fully implemented and, as far as the
-    catalogue shows, no port has ever called it -- ports that want to show
-    advancement hardcode an expected size and poll `du`. An extractor knows
-    exactly how many bytes it is about to write, so it can drive the real bar.
-    """
+    """Report extraction progress through PortMaster's active dialog."""
 
     INPUT = "/dev/shm/portmaster/pm_input"
     DONE = "/dev/shm/portmaster/pm_done"

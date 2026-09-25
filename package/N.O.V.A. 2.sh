@@ -17,12 +17,80 @@ mkdir -p saves
 exec > "$GAMEDIR/log.txt" 2>&1
 if [ ! -f .eapx-nova2-data.json ]; then
   command -v python3 >/dev/null || { pm_message 'N.O.V.A. 2 needs Python 3 for first-launch data import.'; pm_finish; exit 1; }
-  python3 "$GAMEDIR/eapx.py" install --recipe "$GAMEDIR/nova2.eapx.json" --game-dir "$GAMEDIR" --input "$GAMEDIR" --abi arm || { pm_message 'N.O.V.A. 2 data import failed. See nova2/log.txt.'; pm_finish; exit 1; }
+  pm_message 'Importing N.O.V.A. 2 data. Keep the device powered on.'
+  python3 "$GAMEDIR/eapx.py" install --recipe "$GAMEDIR/nova2.eapx.json" --game-dir "$GAMEDIR" --abi arm || { pm_message 'N.O.V.A. 2 data import failed. See nova2/log.txt.'; pm_finish; exit 1; }
 fi
 [ -x "$GAMEDIR/nova2" ] || chmod +x "$GAMEDIR/nova2"
 export PORT_32BIT=Y
 export LD_LIBRARY_PATH="$GAMEDIR/libs.armhf${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
+echo "SDL: configured video=${SDL_VIDEODRIVER:-default} EGL=${SDL_VIDEO_EGL_DRIVER:-default} GL=${SDL_VIDEO_GL_DRIVER:-default}"
+SDL_INFO=$("$GAMEDIR/nova2" --sdl-info 2>&1)
+printf '%s\n' "$SDL_INFO"
+COMPOSITOR=0
+case "${SDL_VIDEODRIVER:-}" in wayland|x11) COMPOSITOR=1 ;; esac
+[ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ] && COMPOSITOR=1
+if [ "$COMPOSITOR" -eq 0 ] && printf '%s\n' "$SDL_INFO" | grep -qx 'sdl: video driver: mali'; then
+  export SDL_VIDEODRIVER=mali
+  echo 'SDL: selecting available mali video driver'
+fi
+GL_DIRS="/usr/local/lib/arm-linux-gnueabihf /usr/lib/arm-linux-gnueabihf /usr/lib/arm-linux-gnueabihf/mali /lib/arm-linux-gnueabihf /usr/lib32/mali /usr/lib32 /usr/lib /lib"
+GL_SHIM=/tmp/nova2-gl
+MALI_BLOB=""
+GL_PROVIDER_FOUND=0
+if [ "$COMPOSITOR" -eq 1 ]; then
+  # Use firmware dispatch libraries, not an arbitrary installed Mali variant.
+  for GL_DIR in $GL_DIRS; do
+    [ -f "$GL_DIR/libEGL.so.1" ] && [ -f "$GL_DIR/libGLESv2.so.2" ] || continue
+    [ "$(od -An -tu1 -j4 -N1 "$GL_DIR/libEGL.so.1" 2>/dev/null | tr -d ' ')" = 1 ] || continue
+    [ "$(od -An -tu1 -j4 -N1 "$GL_DIR/libGLESv2.so.2" 2>/dev/null | tr -d ' ')" = 1 ] || continue
+    export SDL_VIDEO_EGL_DRIVER="${SDL_VIDEO_EGL_DRIVER:-$GL_DIR/libEGL.so.1}"
+    export SDL_VIDEO_GL_DRIVER="${SDL_VIDEO_GL_DRIVER:-$GL_DIR/libGLESv2.so.2}"
+    export LD_LIBRARY_PATH="$GL_DIR:$LD_LIBRARY_PATH"
+    echo "GL: compositor firmware EGL=$SDL_VIDEO_EGL_DRIVER GLES=$SDL_VIDEO_GL_DRIVER"
+    GL_PROVIDER_FOUND=1
+    break
+  done
+  [ "$GL_PROVIDER_FOUND" -eq 1 ] || echo 'GL: compositor using firmware defaults; no 32-bit EGL/GLES pair found'
+else
+for GL_DIR in $GL_DIRS; do
+  [ -d "$GL_DIR" ] || continue
+  for GL_CANDIDATE in "$GL_DIR"/libmali-*.so "$GL_DIR"/libmali.so* "$GL_DIR"/libMali.so*; do
+    [ -e "$GL_CANDIDATE" ] || continue
+    MALI_BLOB="$GL_CANDIDATE"
+    break 2
+  done
+done
+if [ -n "$MALI_BLOB" ] && mkdir -p "$GL_SHIM"; then
+  for GL_SONAME in libEGL.so libEGL.so.1 libGLESv1_CM.so.1 libGLESv2.so libGLESv2.so.2 libmali.so.1; do
+    ln -sf "$MALI_BLOB" "$GL_SHIM/$GL_SONAME"
+  done
+  export LD_LIBRARY_PATH="$GL_SHIM:${MALI_BLOB%/*}:$LD_LIBRARY_PATH"
+  echo "GL: using device Mali library $MALI_BLOB"
+  GL_PROVIDER_FOUND=1
+else
+  for GL_DIR in $GL_DIRS; do
+    [ -d "$GL_DIR" ] || continue
+    GL_EGL=""
+    GL_GLES=""
+    for GL_CANDIDATE in "$GL_DIR"/libEGL.so "$GL_DIR"/libEGL.so.1; do
+      [ -e "$GL_CANDIDATE" ] && { GL_EGL="$GL_CANDIDATE"; break; }
+    done
+    for GL_CANDIDATE in "$GL_DIR"/libGLESv2.so "$GL_DIR"/libGLESv2.so.2; do
+      [ -e "$GL_CANDIDATE" ] && { GL_GLES="$GL_CANDIDATE"; break; }
+    done
+    if [ -n "$GL_EGL" ] && [ -n "$GL_GLES" ]; then
+      export SDL_VIDEO_EGL_DRIVER="$GL_EGL"
+      export SDL_VIDEO_GL_DRIVER="$GL_GLES"
+      export LD_LIBRARY_PATH="$GL_DIR:$LD_LIBRARY_PATH"
+      echo "GL: using device EGL/GLES libraries from $GL_DIR"
+      GL_PROVIDER_FOUND=1
+      break
+    fi
+  done
+fi
+fi
+[ "$GL_PROVIDER_FOUND" -eq 1 ] || echo "GL: no EGL/GLES provider found in: $GL_DIRS"
 export NOVA2_RESOLUTION="${NOVA2_RESOLUTION:-auto}"
 [ -f resolution.txt ] && NOVA2_RESOLUTION="$(tr -d '\r\n' < resolution.txt)"
 export NOVA2_RESOLUTION
@@ -37,6 +105,7 @@ command -v pm_platform_helper >/dev/null 2>&1 && pm_platform_helper "$GAMEDIR/no
 read -r -a taskset_command <<< "${TASKSET:-}"
 "${taskset_command[@]}" "$GAMEDIR/nova2" "$GAMEDIR/donor"
 status=$?
+echo "N.O.V.A. 2: runtime exit status=$status"
 [ -n "$mapper_pid" ] && kill "$mapper_pid" 2>/dev/null
 [ -n "$mapper_pid" ] && wait "$mapper_pid" 2>/dev/null
 pm_finish

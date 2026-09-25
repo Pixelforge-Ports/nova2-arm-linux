@@ -1,2 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<gameList><game><path>./N.O.V.A. 2.sh</path><name>N.O.V.A. 2: Near Orbit Vanguard Alliance</name><desc>N.O.V.A. 2 Android v1.0.3 for ARM Linux handhelds. Bring your own game files.</desc><developer>Gameloft</developer><publisher>Gameloft</publisher><genre>Action / Shooter</genre><players>1</players></game></gameList>
+<gameList>
+  <game>
+    <path>./N.O.V.A. 2.sh</path>
+    <name>N.O.V.A. 2: Near Orbit Vanguard Alliance</name>
+    <desc>N.O.V.A. 2 Android v1.0.3 for ARM Linux handhelds. Bring your own game files.</desc>
+    <developer>Gameloft</developer>
+    <publisher>Gameloft</publisher>
+    <genre>Action / Shooter</genre>
+    <players>1</players>
+    <image>./nova2/cover.png</image>
+  </game>
+</gameList>

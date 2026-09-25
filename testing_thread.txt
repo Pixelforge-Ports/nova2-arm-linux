@@ -5,7 +5,19 @@ the exact APK plus the complete gameloft/games/GloftN2HP data directory; no
 game files are included. First launch validates and imports the data, including
 the original compressed audio archive.
 
-Please report: device model, firmware and GPU mode, whether first launch
-finishes, display resolution, menu/gameplay controls, audio, and a copy of
-ports/nova2/log.txt. Testers can force a display size by adding 640x480,
-720x480, 720x720, 1024x768 or 1280x720 to ports/nova2/resolution.txt.
+Please report: device model, firmware and GPU mode, whether first-launch
+progress appears and the import finishes, display resolution, menu/gameplay
+controls, audio, and a copy of ports/nova2/log.txt. Testers can force a display
+size by adding 640x480, 720x480, 720x720, 1024x768 or 1280x720 to
+ports/nova2/resolution.txt.
+
+Testing matrix (mark each result when tested):
+
+- [ ] ROCKNIX Wayland/Sway with Panfrost
+- [ ] ROCKNIX with libMali
+- [ ] muOS fbdev with libMali
+- [ ] dArkOS KMSDRM with current libMali
+- [ ] Knulli KMSDRM with libMali
+- [ ] AmberELEC with legacy libMali
+- [ ] 640x480, 720x480, 720x720, 1024x768, 1280x720
+- [ ] rk3326, rk3566, H700, A133P, Snapdragon 865, Snapdragon 662, Amlogic S922X
