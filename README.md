@@ -1,7 +1,9 @@
 # N.O.V.A. 2 for ARM Linux
 
-**Experimental adapter; startup reaches the rendered front end in the headless test, but handheld controls and gameplay are not yet verified.**
-See [STATUS.md](STATUS.md).
+**Playable on the tested H700 handhelds.** On RG34XXSP with muOS, gameplay
+controls, graphics, music, and sound effects now work. ROCKNIX testing also
+confirmed music and game audio. Other chipsets and firmware combinations have
+not been verified; see [STATUS.md](STATUS.md).
 
 Target donor: Android 1.0.3, identified by the APK and library hashes in `donor-contract.json`. A version label alone does not guarantee matching native interfaces.
 
@@ -57,11 +59,19 @@ is included in the PortMaster ZIP.
 `game/native_bindings.h` records exact JNI argument types, return types, static/instance receivers and ARM soft-float calling conventions. `donor-contract.json` distinguishes exported entry points from methods needing dynamic registration or further investigation. Do not call every declaration indiscriminately.
 
 The adapter supplies Android Java services, controller input, audio
-extraction, resolution detection and a gptokeyb2 exit mapping. The ARM runtime
-compiles, importer tests pass, and the headless startup test renders the title
-screen and front end. A controller A press did not select the menu item in the
-headless test. Handheld controls, level startup, gameplay and audible playback
-still need device testing. See STATUS.md.
+extraction, resolution detection, and a gptokeyb2 exit mapping. The ARM runtime
+compiles and the port is playable on the tested H700 devices. See
+[STATUS.md](STATUS.md).
+
+## Controls
+
+The port starts in normal controller mode. With the default Nintendo face
+layout, **X reloads the weapon** through the game's native reload function.
+**Y keeps its existing grenade action**, as observed on the handheld. Select
+switches to mouse mode for menus; press it again to return to normal controls.
+Holding **L1 or L2** activates the selected special power when available.
+Start opens or closes the pause menu without switching modes. The new X reload
+action still needs a device retest.
 
 ## Credits
 

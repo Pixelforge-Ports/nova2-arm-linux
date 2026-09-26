@@ -44,16 +44,19 @@ static bool select_held = false;
 static bool dpad_up = false, dpad_down = false;
 static bool dpad_left = false, dpad_right = false;
 static bool shoulders[2] = {}, triggers[2] = {};
+static bool reload_buttons[2] = {};
 static int *control_scheme = nullptr;
 // These calls have only pointer/integer arguments, shared by both ARM ABIs.
 using GetLevelFn = void *(*)();
 using GetPlayerFn = void *(*)(void *);
 using CanUsePowerFn = bool (*)(void *, bool);
 using UsePowerFn = void (*)(void *);
+using ReloadWeaponFn = void (*)(void *);
 static GetLevelFn get_level;
 static GetPlayerFn get_player;
 static CanUsePowerFn can_use_power;
 static UsePowerFn use_special_power;
+static ReloadWeaponFn reload_weapon;
 static bool power_held = false;
 
 static void power_button(bool down) {
@@ -113,6 +116,23 @@ static int face_layout_button(int button) {
 static void enter_gameplay(void) {
     // notifyTouchPad* accepts input only for the Xperia scheme (8).
     if (control_scheme) *control_scheme = 8;
+}
+
+static void reload_button(int button, bool down) {
+    if (cursor_mode) return;
+    reload_buttons[button] = down;
+    if (down) enter_gameplay();
+    key(KEY_BUTTON_X, reload_buttons[0] || reload_buttons[1]);
+}
+
+static void reload_weapon_button(bool down) {
+    if (!down || cursor_mode || !get_level || !get_player || !reload_weapon) return;
+    void *level = get_level();
+    void *player = level ? get_player(level) : nullptr;
+    if (!player) return;
+    // The donor's reload callback uses PlayerComponent::m_weaponManager at 0x14c.
+    void *manager = *reinterpret_cast<void **>(static_cast<char *>(player) + 0x14c);
+    if (manager) reload_weapon(manager);
 }
 
 static void set_mouse_mode(bool enabled);
@@ -189,6 +209,7 @@ static void set_mouse_mode(bool enabled) {
 
     dpad_up = dpad_down = dpad_left = dpad_right = false;
     shoulders[0] = shoulders[1] = triggers[0] = triggers[1] = false;
+    reload_buttons[0] = reload_buttons[1] = false;
     power_held = false;
 
     if (cursor_mode) {
@@ -255,13 +276,9 @@ static void handle_button(int raw_button, bool down) {
             else { if (down) enter_gameplay(); key(KEY_BUTTON_B, down); }
             return;
         case SDL_CONTROLLER_BUTTON_X:
-            if (cursor_mode) return;
-            if (down) enter_gameplay();
-            key(KEY_BUTTON_X, down);
-            return;
+            reload_weapon_button(down); return;
         case SDL_CONTROLLER_BUTTON_Y:
-            power_button(down);
-            return;
+            reload_button(1, down); return;
         case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
             shoulder(0, false, down);
             return;
@@ -293,12 +310,15 @@ static void update_trigger(int axis, float value) {
 void input_init() {
     cursor_mode = false;
     select_held = false;
+    reload_buttons[0] = reload_buttons[1] = false;
     control_scheme = reinterpret_cast<int *>(so_symbol(nova_module, "nCurrentControlScheme"));
     if (control_scheme) *control_scheme = 8;
     get_level = reinterpret_cast<GetLevelFn>(so_symbol(nova_module, "_ZN6CLevel8GetLevelEv"));
     get_player = reinterpret_cast<GetPlayerFn>(so_symbol(nova_module, "_ZN6CLevel18GetPlayerComponentEv"));
     can_use_power = reinterpret_cast<CanUsePowerFn>(so_symbol(nova_module, "_ZN13CPowerManager11CanUsePowerEb"));
     use_special_power = reinterpret_cast<UsePowerFn>(so_symbol(nova_module, "_ZN13CPowerManager15UseSpecialPowerEv"));
+    reload_weapon = reinterpret_cast<ReloadWeaponFn>(so_symbol(nova_module, "_ZN14CWeaponManager12ReloadWeaponEv"));
+    if (!reload_weapon) SDL_Log("NOVA2: weapon reload symbol unavailable");
     if (!get_level || !get_player || !can_use_power || !use_special_power)
         SDL_Log("NOVA2: power activation symbols unavailable");
     key_down = native<donor::GLGame_nativeSetOnKeyDown_10>("GLGame_nativeSetOnKeyDown");
@@ -329,7 +349,6 @@ extern "C" void android_input_cursor_position(float *x, float *y, int *visible) 
 }
 
 void android_input_cursor_set(float x, float y) {
-    enter_menu();
     cx = std::clamp(x, 0.f, float(nova_width - 1));
     cy = std::clamp(y, 0.f, float(nova_height - 1));
     if (touching) touch_move(nova_env, (jclass)&game_class, cx, cy, 0);
@@ -347,7 +366,8 @@ bool android_input_inject_control(const char *name, bool down) {
         select_button(down);
         return true;
     }
-    if (!strcmp(name, "y")) { power_button(down); return true; }
+    if (!strcmp(name, "x")) { reload_weapon_button(down); return true; }
+    if (!strcmp(name, "y")) { reload_button(1, down); return true; }
     if (!strcmp(name, "l1") || !strcmp(name, "l2") ||
         !strcmp(name, "r1") || !strcmp(name, "r2")) {
         shoulder(name[0] == 'r', name[1] == '2', down);
@@ -364,7 +384,6 @@ bool android_input_inject_control(const char *name, bool down) {
     }
     struct Binding { const char *name; int code; };
     static const Binding bindings[] = {
-        {"x", KEY_BUTTON_X}, {"y", KEY_BUTTON_Y},
         {"l1", KEY_BUTTON_L1}, {"r1", KEY_BUTTON_R1},
         {"l2", KEY_BUTTON_L2}, {"r2", KEY_BUTTON_R2},
         {"start", KEY_MENU},
@@ -420,6 +439,7 @@ void input_event(const SDL_Event &event) {
         release_virtual_pads();
         android_input_cursor_press(false);
         shoulders[0] = shoulders[1] = triggers[0] = triggers[1] = false;
+        reload_buttons[0] = reload_buttons[1] = false;
         dpad_up = dpad_down = dpad_left = dpad_right = false;
         lx = ly = rx = ry = 0;
         power_held = false;
@@ -474,6 +494,7 @@ void input_event(const SDL_Event &event) {
         android_input_cursor_set(event.motion.x, event.motion.y);
     if ((event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP) &&
         event.button.button == SDL_BUTTON_LEFT) {
+        if (event.type == SDL_MOUSEBUTTONDOWN) enter_menu();
         android_input_cursor_set(event.button.x, event.button.y);
         android_input_cursor_press(event.type == SDL_MOUSEBUTTONDOWN);
     }
