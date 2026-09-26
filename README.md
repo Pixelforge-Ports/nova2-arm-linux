@@ -65,13 +65,24 @@ compiles and the port is playable on the tested H700 devices. See
 
 ## Controls
 
-The port starts in normal controller mode. With the default Nintendo face
-layout, **X reloads the weapon** through the game's native reload function.
-**Y keeps its existing grenade action**, as observed on the handheld. Select
-switches to mouse mode for menus; press it again to return to normal controls.
-Holding **L1 or L2** activates the selected special power when available.
-Start opens or closes the pause menu without switching modes. The new X reload
-action still needs a device retest.
+The game starts in normal controller mode. Press Select to toggle mouse mode
+for menus; use the D-pad or right stick to move the cursor, A to click, and B
+to go back. Start opens or closes the pause menu without changing input mode.
+
+| Control (default Nintendo layout) | Gameplay action |
+| --- | --- |
+| Left stick | Up = forward, Down = back, Left = left, Right = right |
+| D-pad (gameplay) | Up = forward, Down = back, Left = left, Right = right |
+| Right stick | Continuous camera / aim |
+| R1 or R2 | Fire |
+| Hold L1 or L2 | Activate the selected special power (when available) |
+| A | Change weapon |
+| B | Jump / interact (context dependent) |
+| X | Reload weapon |
+| Y | Throw grenade / selected item |
+
+Face labels default to Nintendo layout; set `NOVA2_FACE_LAYOUT=xbox` to swap
+A/B and X/Y. Flight and other context actions depend on the original game.
 
 ## Credits
 

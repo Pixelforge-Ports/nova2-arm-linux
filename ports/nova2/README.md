@@ -37,36 +37,24 @@ The device layout should be:
 
 ## Controls
 
-The game starts in normal controller mode with its on-screen fire control
-hidden. Press Select at any time to switch between normal gameplay controls
-and mouse mode. In mouse mode, use the D-pad or right stick to move the
-cursor, A to click, and B to go back. Press Select again to return to normal
-controls. Start opens or closes the pause menu without changing the current
-input mode.
+The game starts in normal controller mode. Press Select to toggle mouse mode
+for menus; use the D-pad or right stick to move the cursor, A to click, and B
+to go back. Start opens or closes the pause menu without changing input mode.
 
 | Control (default Nintendo layout) | Gameplay action |
 | --- | --- |
 | Left stick | Up = forward, Down = back, Left = left, Right = right |
 | D-pad (gameplay) | Up = forward, Down = back, Left = left, Right = right |
-| Right stick | Continuous camera / aim; Up = look up, Down = look down |
+| Right stick | Continuous camera / aim |
 | R1 or R2 | Fire |
 | Hold L1 or L2 | Activate the selected special power (when available) |
-| A | Throw grenade / selected item |
+| A | Change weapon |
 | B | Jump / interact (context dependent) |
 | X | Reload weapon |
-| Y | Throw grenade / selected item (observed on H700) |
+| Y | Throw grenade / selected item |
 
-Most gameplay buttons use the original Xperia Play scancodes and control
-scheme; X calls the game's native weapon-reload function. Y retains its
-existing grenade input.
 Face labels default to Nintendo layout; set `NOVA2_FACE_LAYOUT=xbox` to swap
-A/B and X/Y. Flight and other context actions depend on the original game;
-this does not add N.O.V.A. 3 abilities to N.O.V.A. 2. The new X reload
-function still needs a device retest.
-
-Resolution defaults to the detected display. To override it, create
-`ports/nova2/resolution.txt` with a supported value such as `640x480`,
-`720x480`, `720x720`, `1024x768`, or `1280x720`.
+A/B and X/Y. Flight and other context actions depend on the original game.
 
 ## Test status
 
