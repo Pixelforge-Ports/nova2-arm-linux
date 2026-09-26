@@ -66,12 +66,25 @@ muOS at 720x480 and reaches a level on an earlier build. Retest this build
 before release. The Xperia Play gameplay mapping, performance, and audio need
 device verification.
 
+The game sends music and effects through its Vox AudioTrack service. On muOS,
+the launcher declares `PORT_32BIT="Y"` in the form its port launcher recognizes
+and points PipeWire, SPA, and ALSA at the firmware's 32-bit plugins. This is
+needed for the system default output to reach the speaker: the previous build
+generated audio but failed to load PipeWire's `support.system` plugin and fell
+back to HDMI. Weston changes the display session, not the game's audio route.
+This correction still needs a device retest. If sound is missing, check
+`log.txt` for the `Audio: 32-bit modules` line, `AudioTrack: opened system
+default output`, and `AudioTrack: first nonzero PCM buffer`. `NOVA2_AUDIODEV`
+can select an output manually, and a failed selection falls back to the
+system default.
+
 | CFW and graphics mode | Device / resolution | Status |
 | --- | --- | --- |
-| muOS (backend not recorded) | RG34XXSP, 720x480 | Earlier build booted and reached a level; current build needs retest |
+| muOS libMali | RG34XXSP, 720x480 | Boots and plays; 32-bit audio plugin correction awaits a device retest. |
 | muOS fbdev | Any supported device | Not tested |
 | muOS libMali | Any supported device | Not tested |
-| ROCKNIX Wayland/Sway, Panfrost | Any supported device | Not tested |
+| ROCKNIX Wayland/Sway (GPU driver not recorded) | RG34XXSP, 720x480 | User reports music and game audio working. |
+| ROCKNIX Wayland/Sway, Panfrost | Any supported device | Not tested separately |
 | ROCKNIX Wayland/Sway, libMali | Any supported device | Not tested |
 | dArkOS KMSDRM, current libMali | Any supported device | Not tested |
 | Knulli KMSDRM, libMali | Any supported device | Not tested |

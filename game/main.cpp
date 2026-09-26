@@ -588,6 +588,9 @@ int main(int argc,char **argv) {
     if(SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_GAMECONTROLLER)) {
         fprintf(stderr,"SDL_Init: %s\n",SDL_GetError());return 1;
     }
+    const char *audio_driver=SDL_GetCurrentAudioDriver();
+    fprintf(stderr,"N.O.V.A. 2: SDL audio backend=%s\n",
+        audio_driver?audio_driver:"none");
     if(!display_config::detect("NOVA2",nova_width,nova_height,false)) return 1;
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,SDL_GL_CONTEXT_PROFILE_ES);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION,2);

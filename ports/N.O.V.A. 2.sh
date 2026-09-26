@@ -21,9 +21,21 @@ if [ ! -f .eapx-nova2-data.json ]; then
   python3 "$GAMEDIR/eapx.py" install --recipe "$GAMEDIR/nova2.eapx.json" --game-dir "$GAMEDIR" --abi arm || { pm_message 'N.O.V.A. 2 data import failed. See nova2/log.txt.'; pm_finish; exit 1; }
 fi
 [ -x "$GAMEDIR/nova2" ] || chmod +x "$GAMEDIR/nova2"
-export PORT_32BIT=Y
+PORT_32BIT="Y"
+export PORT_32BIT
 export LD_LIBRARY_PATH="$GAMEDIR/libs.armhf${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
+for audio_libdir in /usr/local/lib/arm-linux-gnueabihf /usr/lib/arm-linux-gnueabihf /usr/lib32; do
+  [ -d "$audio_libdir/pipewire-0.3" ] && export PIPEWIRE_MODULE_DIR="$audio_libdir/pipewire-0.3"
+  [ -d "$audio_libdir/spa-0.2" ] && export SPA_PLUGIN_DIR="$audio_libdir/spa-0.2"
+  [ -f "$audio_libdir/alsa-lib/libasound_module_pcm_pipewire.so" ] && export ALSA_PLUGIN_DIR="$audio_libdir/alsa-lib"
+done
+echo "Audio: SDL driver=${SDL_AUDIODRIVER:-auto}, output=${NOVA2_AUDIODEV:-system default}"
+echo "Audio: 32-bit modules PipeWire=${PIPEWIRE_MODULE_DIR:-system} SPA=${SPA_PLUGIN_DIR:-system} ALSA=${ALSA_PLUGIN_DIR:-system}"
+if [ -r /proc/asound/cards ]; then
+  echo 'Audio: ALSA cards:'
+  cat /proc/asound/cards
+fi
 echo "SDL: configured video=${SDL_VIDEODRIVER:-default} EGL=${SDL_VIDEO_EGL_DRIVER:-default} GL=${SDL_VIDEO_GL_DRIVER:-default}"
 SDL_INFO=$("$GAMEDIR/nova2" --sdl-info 2>&1)
 printf '%s\n' "$SDL_INFO"

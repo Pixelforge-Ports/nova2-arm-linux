@@ -117,15 +117,19 @@ static SDL_AudioDeviceID open_output(const SDL_AudioSpec *desired,
     if (forced && *forced) {
         SDL_AudioDeviceID device =
             SDL_OpenAudioDevice(forced, 0, desired, obtained, 0);
-        if (!device)
-            trace("AudioTrack: %s=%s failed: %s",
-                  port_env_name("AUDIODEV"), forced, SDL_GetError());
-        return device;
+        if (device) {
+            fprintf(stderr, "AudioTrack: opened requested output %s\n", forced);
+            return device;
+        }
+        fprintf(stderr, "AudioTrack: %s=%s failed: %s; trying system output\n",
+                port_env_name("AUDIODEV"), forced, SDL_GetError());
     }
 
     SDL_AudioDeviceID device = SDL_OpenAudioDevice(NULL, 0, desired, obtained, 0);
-    if (device)
+    if (device) {
+        fprintf(stderr, "AudioTrack: opened system default output\n");
         return device;
+    }
 
     const char *err = SDL_GetError();
     char default_error[256];
@@ -153,16 +157,17 @@ static SDL_AudioDeviceID open_output(const SDL_AudioSpec *desired,
                 SDL_Delay(400);
             }
             if (device)
-                trace("AudioTrack: default output failed (%s); opened \"%s\" "
-                      "on pass %d", default_error, name, pass + 1);
+                fprintf(stderr, "AudioTrack: default output failed (%s); "
+                        "opened \"%s\" on pass %d\n",
+                        default_error, name, pass + 1);
         }
     }
 
     if (!device)
-        trace("AudioTrack: no output accepted %d Hz/%u ch/0x%x: %s "
-              "(%d enumerated device(s))",
-              desired->freq, (unsigned int)desired->channels,
-              (unsigned int)desired->format, default_error, count);
+        fprintf(stderr, "AudioTrack: no output accepted %d Hz/%u ch/0x%x: %s "
+                "(%d enumerated device(s))\n",
+                desired->freq, (unsigned int)desired->channels,
+                (unsigned int)desired->format, default_error, count);
     return device;
 }
 
@@ -179,16 +184,18 @@ static jobject AudioTrack_init(JNIEnv *env, jobject self, jclass clazz,
     Nova2AudioSink *sink = (Nova2AudioSink *)calloc(1, sizeof(Nova2AudioSink));
     track->sink = sink;
 
-    trace("AudioTrack: stream=%d %d Hz %s %s buffer=%d bytes mode=%d",
-          stream, sample_rate, channels_name(channels), encoding_name(format),
-          buffer_bytes, mode);
+    fprintf(stderr, "AudioTrack: stream=%d %d Hz %s %s buffer=%d bytes mode=%d\n",
+            stream, sample_rate, channels_name(channels), encoding_name(format),
+            buffer_bytes, mode);
 
-    if (!sink)
+    if (!sink) {
+        fprintf(stderr, "AudioTrack: could not allocate audio sink\n");
         return (jobject)self;
+    }
 
     if (port_getenv_bool("NO_AUDIO", 0)) {
-        trace("AudioTrack: %s is set - output stays a discard sink",
-              port_env_name("NO_AUDIO"));
+        fprintf(stderr, "AudioTrack: %s is set - output disabled\n",
+                port_env_name("NO_AUDIO"));
         return (jobject)self;
     }
 
@@ -205,31 +212,33 @@ static jobject AudioTrack_init(JNIEnv *env, jobject self, jclass clazz,
 
     if (!(SDL_WasInit(SDL_INIT_AUDIO) & SDL_INIT_AUDIO) &&
         SDL_InitSubSystem(SDL_INIT_AUDIO) != 0) {
-        trace("AudioTrack: SDL audio subsystem failed to initialize: %s",
-              SDL_GetError());
+        fprintf(stderr, "AudioTrack: SDL audio subsystem failed: %s\n",
+                SDL_GetError());
         return (jobject)self;
     }
 
     const char *driver = SDL_GetCurrentAudioDriver();
     int outputs = SDL_GetNumAudioDevices(0);
-    trace("AudioTrack: SDL audio ready driver=%s outputs=%d request=%d Hz/%u "
-          "ch/0x%x period=%u",
-          driver ? driver : "(none)", outputs, sink->desired.freq,
-          (unsigned int)sink->desired.channels,
-          (unsigned int)sink->desired.format,
-          (unsigned int)sink->desired.samples);
+    fprintf(stderr, "AudioTrack: SDL driver=%s outputs=%d request=%d Hz/%u "
+            "ch/0x%x period=%u\n",
+            driver ? driver : "(none)", outputs, sink->desired.freq,
+            (unsigned int)sink->desired.channels,
+            (unsigned int)sink->desired.format,
+            (unsigned int)sink->desired.samples);
     for (int i = 0; i < outputs && i < 8; i++) {
         const char *name = SDL_GetAudioDeviceName(i, 0);
-        trace("AudioTrack: output[%d]=%s", i, name ? name : "(null)");
+        fprintf(stderr, "AudioTrack: output[%d]=%s\n", i,
+                name ? name : "(null)");
     }
 
     sink->device = open_output(&sink->desired, &sink->obtained);
     if (sink->device)
-        trace("AudioTrack: opened device=%u obtained=%d Hz/%u ch/0x%x period=%u",
-              (unsigned int)sink->device, sink->obtained.freq,
-              (unsigned int)sink->obtained.channels,
-              (unsigned int)sink->obtained.format,
-              (unsigned int)sink->obtained.samples);
+        fprintf(stderr, "AudioTrack: opened device=%u obtained=%d Hz/%u "
+                "ch/0x%x period=%u\n",
+                (unsigned int)sink->device, sink->obtained.freq,
+                (unsigned int)sink->obtained.channels,
+                (unsigned int)sink->obtained.format,
+                (unsigned int)sink->obtained.samples);
 
     return (jobject)self;
 }
@@ -238,6 +247,11 @@ static jint AudioTrack_getMinBufferSize(JNIEnv *env, jclass clazz,
                                         jint sample_rate, jint channels, jint format)
 {
     (void)env; (void)clazz; (void)sample_rate; (void)channels; (void)format;
+    static bool reported = false;
+    if (!reported) {
+        reported = true;
+        fprintf(stderr, "AudioTrack: Vox requested its 4096-byte output buffer\n");
+    }
     /* 4096 bytes, as the reference port answers - one frame's worth at 44.1 kHz
      * stereo 16-bit with room to spare, and a power of two, which is what the
      * engine's ring allocator expects. */
@@ -311,10 +325,12 @@ static void report_writes(Nova2AudioSink *sink, int bytes)
 
     bool milestone = (sink->writes & (sink->writes - 1)) == 0;
     if (sink->writes <= 4 || milestone)
-        trace("AudioTrack: writes=%lu bytes=%llu last=%d queued=%u device=%u",
-              sink->writes, sink->bytes, bytes,
-              sink->device ? SDL_GetQueuedAudioSize(sink->device) : 0u,
-              (unsigned int)sink->device);
+        fprintf(stderr, "AudioTrack: writes=%lu bytes=%llu last=%d queued=%u "
+                "device=%u status=%d\n",
+                sink->writes, sink->bytes, bytes,
+                sink->device ? SDL_GetQueuedAudioSize(sink->device) : 0u,
+                (unsigned int)sink->device,
+                sink->device ? (int)SDL_GetAudioDeviceStatus(sink->device) : -1);
 }
 
 /*
@@ -339,12 +355,26 @@ static jint queue_pcm(jobject self, const void *pcm, int bytes, jint report)
 
     report_writes(sink, bytes);
 
+    if (pcm && bytes > 0) {
+        static bool reported_nonzero = false;
+        if (!reported_nonzero) {
+            const unsigned char *data = (const unsigned char *)pcm;
+            for (int i = 0; i < bytes; i++) {
+                if (data[i]) {
+                    reported_nonzero = true;
+                    fprintf(stderr, "AudioTrack: first nonzero PCM buffer at write=%lu\n",
+                            sink->writes);
+                    break;
+                }
+            }
+        }
+    }
+
     if (!sink->device) {
         static bool warned = false;
         if (!warned) {
             warned = true;
-            trace("AudioTrack: no SDL output device - PCM is being discarded. "
-                  "The game runs at the right rate but plays silent.");
+            fprintf(stderr, "AudioTrack: no SDL output device - PCM discarded\n");
         }
         return report;
     }
@@ -353,7 +383,8 @@ static jint queue_pcm(jobject self, const void *pcm, int bytes, jint report)
         static bool warned = false;
         if (!warned) {
             warned = true;
-            trace("AudioTrack: SDL_QueueAudio failed: %s", SDL_GetError());
+            fprintf(stderr, "AudioTrack: SDL_QueueAudio failed: %s\n",
+                    SDL_GetError());
         }
         return report;
     }
@@ -391,11 +422,10 @@ static const void *array_base(ArrayObject *data, jint offset, jint count,
         static bool warned = false;
         if (!warned) {
             warned = true;
-            trace("AudioTrack.write(%s): array at %p is not one this loader "
-                  "allocated (element_size=%d, elements=%p) - dropping the write "
-                  "rather than following the pointer.",
-                  what, (void *)data, data ? (int)data->element_size : 0,
-                  data ? data->elements : NULL);
+            fprintf(stderr, "AudioTrack.write(%s): invalid array at %p "
+                    "(element_size=%d, elements=%p)\n",
+                    what, (void *)data, data ? (int)data->element_size : 0,
+                    data ? data->elements : NULL);
         }
         return NULL;
     }
@@ -405,9 +435,9 @@ static const void *array_base(ArrayObject *data, jint offset, jint count,
         static bool warned = false;
         if (!warned) {
             warned = true;
-            trace("AudioTrack.write(%s): range offset=%d count=%d exceeds array "
-                  "length=%d - dropping write",
-                  what, offset, count, (int)data->count);
+            fprintf(stderr, "AudioTrack.write(%s): range offset=%d count=%d "
+                    "exceeds length=%d\n",
+                    what, offset, count, (int)data->count);
         }
         return NULL;
     }
@@ -425,8 +455,9 @@ static jint AudioTrack_write(JNIEnv *env, jobject self, jclass clazz,
     static bool announced = false;
     if (!announced) {
         announced = true;
-        trace("AudioTrack.write(byte[]): track=%p data=%p offset=%d length=%d",
-              (void *)self, (void *)buffer, offset, length);
+        fprintf(stderr, "AudioTrack.write(byte[]): track=%p data=%p "
+                "offset=%d length=%d\n",
+                (void *)self, (void *)buffer, offset, length);
     }
 
     const void *pcm = array_base((ArrayObject *)buffer, offset, length,
