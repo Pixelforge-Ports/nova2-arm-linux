@@ -4,6 +4,15 @@ This ARM Linux port of the Android **v1.0.3** release is playable on tested
 H700 handhelds. Gameplay controls, graphics, music, and sound effects work.
 It does not include any game files.
 
+## Get the Android APK and game data
+
+This port requires **N.O.V.A. 2 1.0.3** for Android, including its APK and the
+complete `gameloft/games/GloftN2HP` data folder. Use files from your own
+Android installation. The APK must contain `lib/armeabi/libnova2.so` with
+SHA-256 `476c275bcd942807d8c49068b4dc6c6e666b60190845716d71b1069d80d3caaa`;
+the version label alone does not guarantee a compatible build. The ZIP does
+not contain the game or its data.
+
 ## Install
 
 1. Place `nova2.zip` in PortMaster's `autoinstall` folder and run it.
@@ -25,9 +34,6 @@ The device layout should be:
     ├── sprites.gla
     └── other original game data files...
 ```
-
-The APK is accepted only when it contains `lib/armeabi/libnova2.so` with
-SHA-256 `476c275bcd942807d8c49068b4dc6c6e666b60190845716d71b1069d80d3caaa`.
 
 ## Controls
 

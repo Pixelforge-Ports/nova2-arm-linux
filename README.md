@@ -82,3 +82,14 @@ Copyright (c) 2026 Pixelforge Ports contributors.
 Uses EapRules' eapx import tool from the existing Android ports. The original game remains the property of its respective rights holders. Original component licences are retained.
 
 The AudioTrack compatibility service is adapted from EapRules' Modern Combat 3 port.
+
+## Website package metadata
+
+The Pixelforge Ports website reads `package/port.json`, `package/README.md`,
+and `package/screenshot.png` from the public source repository. The matching
+`package/cover.png` and `package/gameinfo.xml` are kept beside them for
+consistency with the other ports. Run `python tools/sync_package.py` after
+changing the port metadata, guide, launcher, or artwork; packaging runs this
+step automatically. The website reads these files from GitHub after they are
+pushed, and shows a download when a published release has an uploaded
+`nova2.zip` asset. No purchased APK or game data belongs in the repository.

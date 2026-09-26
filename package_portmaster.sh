@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")"
+python3 tools/sync_package.py
 OUT="build/nova2.zip"
 STAGE="build/pkg-portmaster"
 [ -x build/nova2 ] || { echo "build/nova2 missing; run make first" >&2; exit 1; }
